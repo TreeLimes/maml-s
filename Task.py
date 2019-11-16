@@ -121,7 +121,7 @@ class MiniTask():
 class MiniTaskDistribution():
 
     def __init__(self, n_way, k_shot, tasks_batch_size, phase):
-        self.root_dir = '~/MAML/maml-research/imagenet/processed_images'
+        self.root_dir = '~/MAML/maml-s/imagenet/processed_images'
         self.datasets_dir = self.root_dir + phase + "/"
         self.n_way = n_way
 
