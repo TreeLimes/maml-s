@@ -9,7 +9,7 @@ import os
 
 model = M.MAMLModel()
 
-base_maml = M.MAML(model, inner_lr=0.01, meta_lr=0.001, num_iterations=2, inner_steps=2, tasks_per_meta_batch=4, num_of_epochs=4)
+base_maml = M.MAML(model, inner_lr=0.01, meta_lr=0.001, num_iterations=10, inner_steps=5, tasks_per_meta_batch=4, num_of_epochs=150)
 
 base_maml.train()
 
