@@ -9,7 +9,7 @@ import os
 
 model = M.MAMLModel()
 
-base_maml = M.MAML(model, inner_lr=0.01, meta_lr=0.001, num_iterations=10, inner_steps=5, tasks_per_meta_batch=4, num_of_epochs=150)
+base_maml = M.MAML(model, inner_lr=0.01, meta_lr=0.001, num_iterations=100, inner_steps=5, tasks_per_meta_batch=4, num_of_epochs=150)
 
 base_maml.train()
 
@@ -27,7 +27,7 @@ mamls = []
 for priority in all_distances:
     model_copy = type(base_maml.model)()
     model_copy.load_state_dict(base_maml.model.state_dict())
-    m = M.MAML(model_copy, inner_lr=0.01, meta_lr=0.001, num_iterations=2, inner_steps=2, tasks_per_meta_batch=4, num_of_epochs=4, train_tasks=train_tasks, val_tasks=val_tasks, priority=priority)
+    m = M.MAML(model_copy, inner_lr=0.01, meta_lr=0.001, num_iterations=100, inner_steps=5, tasks_per_meta_batch=4, num_of_epochs=150, train_tasks=train_tasks, val_tasks=val_tasks, priority=priority)
     m.train()
     mamls.append(m)
     print("Trained")

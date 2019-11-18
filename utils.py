@@ -57,8 +57,8 @@ def concatenated_outputs(w1, w2, data, maml):
                 x_batch, w2)
         o1 = o1.view(o1.size(0), -1)
         o2 = o2.view(o2.size(0), -1)
-        outputs1.append(o1.detach())
-        outputs2.append(o2.detach())
+        outputs1.append(o1.detach().cpu())
+        outputs2.append(o2.detach().cpu())
 
     output1 = np.concatenate(outputs1, axis=None)
     output2 = np.concatenate(outputs2, axis=None)

@@ -77,7 +77,7 @@ class MiniTask():
         labels = torch.Tensor(labels)
         batch = torch.stack(batch)
 
-        return batch.type('torch.FloatTensor').cuda(), labels.long()
+        return batch.type('torch.FloatTensor').cuda(), labels.long().cuda()
 
 
         #return batch, labels
@@ -98,7 +98,7 @@ class MiniTask():
         labels = torch.Tensor(labels)
         batch = torch.stack(batch)
 
-        return batch.type('torch.FloatTensor').cuda(), labels.long()
+        return batch.type('torch.FloatTensor').cuda(), labels.long().cuda()
 
 
     def sample_heldoutbatches(self, k_shot_multiple=1):
