@@ -21,7 +21,7 @@ test_tasks = base_maml.test_tasks
 print("Trained base model")
 
 used_root_indices, all_distances, all_reduced_embeddings, all_embeddings = utils.get_trajectories(5, base_maml)
-
+print(all_distances)
 mamls = []
 
 for priority in all_distances:
@@ -32,59 +32,96 @@ for priority in all_distances:
     mamls.append(m)
     print("Trained")
 
-test_loss = []
+#test_loss = []
 test_accs = []
-base_test_loss = []
+s_test_accs = []
+s_base_test_accs = []
+#base_test_loss = []
 base_test_accs = []
+distances = []
 
 for t in test_tasks:
     d = utils.distance_between_tasks(train_tasks, used_root_indices, t, base_maml)
+    distances.append(d)
     closest_task_indx = np.argmin(d)
-    m = mamls[closest_task_indx]
-    fine_tuned_weights = utils.fine_tune(t,m, m.weights)
+
     base_fine_tuned_weights = utils.fine_tune(t, base_maml, base_maml.weights)
 
-    model_labels = []
-    labels = []
-    losses = []
+    fine_tuned_weights = []
 
-    base_model_labels = []
-    base_losses = []
+    for m in mamls:
+        fine_tuned_weights.append(utils.fine_tune(t, m, m.weights))
 
-    for x_batch, y_batch in t.sample_batches(m.k_shot_factor_for_qry):
 
-        out = m.model.parameterised(
-            x_batch, fine_tuned_weights)
-        base_out = base_maml.model.parameterised(
-            x_batch, base_fine_tuned_weights)
+    accs = []
+    base_accs = []
 
-        losses.append(m.criterion(out, y_batch).item())
-        base_losses.append(base_maml.criterion(base_out, y_batch).item())
+    for i, m in enumerate(mamls):
 
-        for out_ in out:
-            model_labels.append(torch.max(out_, 0)[1].item())
-        for label in y_batch:
-            labels.append(label.item())
+        base_model_labels = []
+        #base_losses = []
 
-        for out_ in base_out:
-            base_model_labels.append(torch.max(out_, 0)[1].item())
-        m.meta_optimiser.zero_grad()
-    test_loss.append(np.mean(losses))
+        model_labels = []
+        labels = []
+        #losses = []
 
-    base_test_loss.append(np.mean(base_losses))
+        for x_batch, y_batch in t.sample_batches(m.k_shot_factor_for_qry):
 
-    num_of_correct = np.count_nonzero(
-            (np.array(model_labels) - np.array(labels)) == 0)
-    base_num_of_correct = np.count_nonzero(
-            (np.array(base_model_labels) - np.array(labels)) == 0)
+            out = m.model.parameterised(
+                x_batch, fine_tuned_weights)
+            base_out = base_maml.model.parameterised(
+                x_batch, base_fine_tuned_weights)
 
-    acc = num_of_correct / len(labels)
-    base_acc = base_num_of_correct / len(labels)
+            #losses.append(m.criterion(out, y_batch).item())
+            #base_losses.append(base_maml.criterion(base_out, y_batch).item())
 
-    test_accs.append(acc)
-    base_test_accs.append(base_acc)
-    print("Tested")
-print("No here")
+            for out_ in out:
+                model_labels.append(torch.max(out_, 0)[1].item())
+            for label in y_batch:
+                labels.append(label.item())
+
+            for out_ in base_out:
+                base_model_labels.append(torch.max(out_, 0)[1].item())
+            m.meta_optimiser.zero_grad()
+        #test_loss.append(np.mean(losses))
+
+        #base_test_loss.append(np.mean(base_losses))
+
+        num_of_correct = np.count_nonzero(
+                (np.array(model_labels) - np.array(labels)) == 0)
+        base_num_of_correct = np.count_nonzero(
+                (np.array(base_model_labels) - np.array(labels)) == 0)
+
+        acc = num_of_correct / len(labels)
+        base_acc = base_num_of_correct / len(labels)
+
+        accs.append(acc)
+        base_accs.append(base_acc)
+        if i == closest_task_indx:
+            s_test_accs.append(accs)
+            s_base_test_accs.append(base_acc)
+
+
+    test_accs.append(accs)
+    base_test_accs.append(base_accs)
+
+
+for i, dist, accs, base_accs in enumerate(zip(distances, test_accs, base_test_accs)):
+    if not os.path.exists("graphs/task" + str(i)):
+        os.mkdir("graphs/task"+str(i))
+    plt.plot(dist, accs, 'bo', label="S accs")
+    plt.plot(dist, base_accs, 'ro', label="Base accs")
+    plt.title("Test Task " + str(i) + ": Distance Vs Acc")
+    plt.xlabel("Test and Root Task Distance")
+    plt.ylabel("Acc")
+    plt.legend()
+    name = 'graphs/task' + str(i) + "/Distance_Vs_Acc"
+
+    if os.path.isfile(name):
+           os.remove(name)
+    plt.savefig(name)
+    plt.close()
+
 
 for i, m in enumerate(mamls):
     if not os.path.exists("graphs/model" + str(i)):
@@ -96,7 +133,10 @@ for i, m in enumerate(mamls):
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend()
-    plt.savefig('graphs/model'+str(i)+'/Train_Loss_Vs_Val_Loss.png')
+    name = 'graphs/model'+str(i)+'/Train_Loss_Vs_Val_Loss.png'
+    if os.path.isfile(name):
+           os.remove(name)
+    plt.savefig(name)
     plt.close()
 
     plt.plot(epochs, m.avg_train_accs, 'b-', label='Average Train Acc')
@@ -105,7 +145,10 @@ for i, m in enumerate(mamls):
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend()
-    plt.savefig('graphs/model'+str(i)+'/Train_Acc_Vs_Val_Acc.png')
+    name = 'graphs/model'+str(i)+'/Train_Acc_Vs_Val_Acc.png'
+    if os.path.isfile(name):
+           os.remove(name)
+    plt.savefig(name)
     plt.close()
 
 if not os.path.exists("graphs/final"):
@@ -113,13 +156,34 @@ if not os.path.exists("graphs/final"):
 
 test_task_nums = np.arange(len(test_tasks))
 print(test_accs)
-plt.plot(test_task_nums, test_accs, 'bo', label='S Model Acc')
-plt.plot(test_task_nums, base_test_accs, 'ro', label='Base Model Acc')
+plt.plot(test_task_nums, s_test_accs, 'bo', label='S Model Acc')
+plt.plot(test_task_nums, s_base_test_accs, 'ro', label='Base Model Acc')
 plt.title("S Model vs Base Model Accs on Test Tasks")
 plt.ylabel("Accuracy")
 plt.xlabel("Test Task Number")
 plt.legend()
-plt.savefig("graphs/final/final_acc.png")
+name = "graphs/final/final_acc.png"
+if os.path.isfile(name):
+       os.remove(name)
+plt.savefig(name)
+
+print("Mean Accs S: ", np.mean(test_accs))
+print("Mean Accs Base:", np.mean(base_test_accs))
+
+if not os.path.exists("graphs/base_model"):
+    os.mkdir("graphs/base_model")
+epochs = np.arange(m.num_of_epochs)
+plt.plot(epochs, base_maml.avg_train_losses, 'b-', label='Average Train Loss')
+plt.plot(epochs, base_maml.avg_val_losses, 'r-', label='Average Validation Loss')
+plt.title("Base Model: Train Loss vs Val Loss ")
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend()
+name = 'graphs/base_model/Train_Loss_Vs_Val_Loss.png'
+if os.path.isfile(name):
+       os.remove(name)
+plt.savefig(name)
+plt.close()
 
 
 
